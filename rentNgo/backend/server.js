@@ -10,6 +10,18 @@ const contactRoutes = require("./routes/contactRoutes");
 const { notFound, errorHandler } = require("./middleware/errorMiddleware");
 
 dotenv.config();
+
+const requiredEnvVars = ["MONGO_URI", "JWT_SECRET"];
+const missingEnvVars = requiredEnvVars.filter((envKey) => !process.env[envKey]);
+
+if (missingEnvVars.length) {
+  console.error(
+    `Missing required environment variables: ${missingEnvVars.join(", ")}. ` +
+      "Add them in your deployment environment before starting the server."
+  );
+  process.exit(1);
+}
+
 connectDB();
 
 const app = express();

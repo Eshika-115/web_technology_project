@@ -3,6 +3,13 @@ const User = require("../models/User");
 
 const protect = async (req, res, next) => {
   try {
+    if (!process.env.JWT_SECRET) {
+      return res.status(500).json({
+        success: false,
+        message: "JWT_SECRET is missing in the server environment configuration.",
+      });
+    }
+
     const authHeader = req.headers.authorization || "";
 
     if (!authHeader.startsWith("Bearer ")) {
