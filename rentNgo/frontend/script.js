@@ -1,10 +1,66 @@
-const API_BASE_URL = "https://web-technology-project-g5qh.onrender.com/api";
+const FRONTEND_ENV_PATH = ".env";
 const AUTH_TOKEN_KEY = "rentngoToken";
 const AUTH_USER_KEY = "rentngoUser";
 const RECENT_BOOKING_KEY = "rentngoRecentBooking";
 const FALLBACK_VEHICLE_KEY = "rentngoFallbackVehicle";
 
+let apiBaseUrl =
+  window.location.port === "5500" &&
+  (window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost")
+    ? "http://127.0.0.1:5000/api"
+    : "/api";
 let cachedVehicles = [];
+
+async function loadFrontendEnv() {
+  if (isLiveServerLocal()) {
+    return;
+  }
+
+  try {
+    const response = await fetch(FRONTEND_ENV_PATH, { cache: "no-store" });
+    if (!response.ok) {
+      throw new Error(`Unable to load ${FRONTEND_ENV_PATH}`);
+    }
+
+    const envText = await response.text();
+    const parsedEnv = parseEnvFile(envText);
+    apiBaseUrl = parsedEnv.API_BASE_URL || apiBaseUrl;
+  } catch (error) {
+    console.warn(`Frontend env load failed. Falling back to ${apiBaseUrl}.`, error.message);
+  }
+}
+
+function isLiveServerLocal() {
+  return (
+    window.location.port === "5500" &&
+    (window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost")
+  );
+}
+
+function parseEnvFile(envText) {
+  return envText.split(/\r?\n/).reduce((env, line) => {
+    const trimmedLine = line.trim();
+    if (!trimmedLine || trimmedLine.startsWith("#")) {
+      return env;
+    }
+
+    const separatorIndex = trimmedLine.indexOf("=");
+    if (separatorIndex === -1) {
+      return env;
+    }
+
+    const key = trimmedLine.slice(0, separatorIndex).trim();
+    const value = trimmedLine.slice(separatorIndex + 1).trim().replace(/^['"]|['"]$/g, "");
+
+    if (key) {
+      env[key] = value;
+    }
+
+    return env;
+  }, {});
+}
+
+const frontendEnvReady = loadFrontendEnv();
 
 async function loadSharedPartials() {
   const includeTargets = document.querySelectorAll("[data-include]");
@@ -92,7 +148,9 @@ async function apiRequest(endpoint, options = {}) {
     config.body = JSON.stringify(options.body);
   }
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
+  await frontendEnvReady;
+
+  const response = await fetch(`${apiBaseUrl}${endpoint}`, config);
   const rawText = await response.text();
   let data = {};
 

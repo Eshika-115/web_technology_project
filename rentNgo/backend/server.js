@@ -30,7 +30,7 @@ const frontendPath = path.join(__dirname, "../frontend");
 
 app.use(express.json());
 app.use(cors());
-app.use(express.static(frontendPath));
+app.use(express.static(frontendPath, { dotfiles: "allow" }));
 
 app.get("/api/health", (req, res) => {
   res.status(200).json({
